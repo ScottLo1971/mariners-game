@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mariners Baseball Game</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #001F3F;
+  font-family: Georgia, serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+}
+#top-bar {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+#top-bar h1 { color: #00B2A9; font-size: 26px; letter-spacing: 2px; }
+#edit-btn {
+  font-size: 15px; padding: 7px 20px;
+  border-radius: 8px; border: 2px solid #00B2A9;
+  background: transparent; color: #00B2A9;
+  cursor: pointer; font-family: Georgia, serif;
+}
+#edit-btn:hover { background: #00B2A9; color: #001F3F; }
+
+#game-area {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+#field-wrap {
+  position: relative;
+  width: 700px;
+  height: 780px;
+  flex-shrink: 0;
+}
+#field-svg {
+  width: 700px;
+  height: 780px;
+  border-radius: 16px;
+  display: block;
+}
+
+.pos-slot {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 3px dashed rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.1);
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  z-index: 5;
+}
+.pos-slot:hover { border-color: #fff; background: rgba(255,255,255,0.28); }
+.pos-slot.has-photo { border: 3px solid #FFD700; }
+.pos-slot.drag-over { border-color: #00ff88; border-style: solid; background: rgba(0,255,136,0.3); }
+.pos-slot img { width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; pointer-events:none; }
+
+#roster {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px;
+}
+.roster-slot {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  border: 3px dashed #00B2A9;
+  background: rgba(0,178,169,0.1);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; flex-shrink: 0;
+  transition: border-color 0.2s, opacity 0.2s;
+}
+.roster-slot.draggable { cursor: grab; }
+.roster-slot.draggable:hover { border-color: #FFD700; }
+.roster-slot.placed { opacity: 0.3; pointer-events: none; }
+.roster-slot img { width:100%; height:100%; object-fit:cover; border-radius:50%; pointer-events:none; display:block; }
+.roster-slot.edit-empty { cursor:pointer; border-color:#FFD700; background:rgba(255,215,0,0.08); }
+.roster-slot.edit-empty::after { content:'+'; font-size:40px; color:#FFD700; line-height:1; }
+.roster-slot.edit-has-photo { cursor:pointer; border-color:#FFD700; border-style:solid; }
+.roster-input { display:none; }
+
+#win-banner {
+  display:none; margin-top:14px; padding:14px 30px;
+  background:#FFD700; border-radius:12px;
+  font-size:24px; font-weight:bold; color:#001F3F;
+  text-align:center; letter-spacing:1px;
+}
+#reset-btn {
+  margin-top:10px; font-size:14px; padding:7px 20px;
+  border-radius:8px; border:2px solid rgba(255,255,255,0.3);
+  background:transparent; color:rgba(255,255,255,0.55);
+  cursor:pointer; font-family:Georgia,serif;
+  width:100%; max-width:1100px;
+}
+#reset-btn:hover { border-color:#fff; color:#fff; }
+#instructions { color:rgba(255,255,255,0.4); font-size:13px; text-align:center; margin-top:6px; }
+</style>
+</head>
+<body>
+
+<div id="top-bar">
+  <h1>⚾ Mariners</h1>
+  <button id="edit-btn" onclick="toggleEdit()">Edit</button>
+</div>
+
+<div id="game-area">
+
+  <div id="field-wrap">
+    <svg id="field-svg" viewBox="0 0 700 780" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="700" height="780" fill="#001F3F" rx="16"/>
+      <ellipse cx="350" cy="400" rx="330" ry="310" fill="#2d8a2d"/>
+      <path d="M350 630 L145 405 L350 180 L555 405 Z" fill="#b87c3e"/>
+      <path d="M350 595 L185 410 L350 225 L515 410 Z" fill="#3a9a3a"/>
+      <line x1="350" y1="630" x2="145" y2="405" stroke="#d4a96a" stroke-width="3"/>
+      <line x1="145" y1="405" x2="350" y2="180" stroke="#d4a96a" stroke-width="3"/>
+      <line x1="350" y1="180" x2="555" y2="405" stroke="#d4a96a" stroke-width="3"/>
+      <line x1="555" y1="405" x2="350" y2="630" stroke="#d4a96a" stroke-width="3"/>
+      <rect x="336" y="616" width="28" height="28" fill="white" rx="3" transform="rotate(45,350,630)"/>
+      <rect x="131" y="391" width="28" height="28" fill="white" rx="3" transform="rotate(45,145,405)"/>
+      <rect x="336" y="166" width="28" height="28" fill="white" rx="3" transform="rotate(45,350,180)"/>
+      <rect x="541" y="391" width="28" height="28" fill="white" rx="3" transform="rotate(45,555,405)"/>
+      <circle cx="350" cy="418" r="20" fill="#c8894a"/>
+      <polygon points="350,646 334,630 334,614 366,614 366,630" fill="white"/>
+    </svg>
+
+    <!-- OUTFIELDERS: in the navy blue -->
+    <div class="pos-slot" id="slot-LF" data-pos="LF" style="left:100px; top:55px;"></div>
+    <div class="pos-slot" id="slot-CF" data-pos="CF" style="left:350px; top:35px;"></div>
+    <div class="pos-slot" id="slot-RF" data-pos="RF" style="left:600px; top:55px;"></div>
+
+    <!-- SS and 2B: fully in green -->
+    <div class="pos-slot" id="slot-SS" data-pos="SS" style="left:232px; top:218px;"></div>
+    <div class="pos-slot" id="slot-2B" data-pos="2B" style="left:468px; top:218px;"></div>
+
+    <!-- 3B and 1B: in green outside base paths -->
+    <div class="pos-slot" id="slot-3B" data-pos="3B" style="left:105px; top:385px;"></div>
+    <div class="pos-slot" id="slot-1B" data-pos="1B" style="left:595px; top:385px;"></div>
+
+    <!-- P: pitcher's mound -->
+    <div class="pos-slot" id="slot-P"  data-pos="P"  style="left:350px; top:418px;"></div>
+
+    <!-- C: in navy blue below home plate -->
+    <div class="pos-slot" id="slot-C"  data-pos="C"  style="left:350px; top:710px;"></div>
+  </div>
+
+  <!-- 10 roster slots -->
+  <div id="roster">
+    <div class="roster-slot" id="r0" data-idx="0"><input type="file" class="roster-input" accept="image/*"/></div>
+    <div class="roster-slot" id="r1" data-idx="1"><input type="file" class="roster-input" accept="image/*"/></div>
+    <div class="roster-slot" id="r2" data-idx="2"><input type="file" class="roster-input" accept="image/*"/></div>
+    <div class="roster-slot" id="r3" data-idx="3"><input type="file" class="roster-input" accept="image/*"/></div>
+    <div class="roster-slot" id="r4" data-idx="4"><input type="file" class="roster-input" accept="image/*"/></div>
+    <div class="roster-slot" id="r5" data-idx="5"><input type="file" class="roster-input" accept="image/*"/></div>
+    <div class="roster-slot" id="r6" data-idx="6"><input type="file" class="roster-input" accept="image/*"/></div>
+    <div class="roster-slot" id="r7" data-idx="7"><input type="file" class="roster-input" accept="image/*"/></div>
+    <div class="roster-slot" id="r8" data-idx="8"><input type="file" class="roster-input" accept="image/*"/></div>
+    <div class="roster-slot" id="r9" data-idx="9"><input type="file" class="roster-input" accept="image/*"/></div>
+  </div>
+
+</div>
+
+<div id="win-banner">⚾ Go Mariners! ⚾</div>
+<button id="reset-btn" onclick="resetGame()">Reset</button>
+<p id="instructions">Drag a player photo onto a spot on the field</p>
+
+<script>
+const TOTAL = 10;
+const STORAGE_KEY = 'mariners_v3';
+let editMode = false;
+let dragIdx = null;
+let placed = {};
+let photos = loadPhotos();
+
+function loadPhotos() {
+  try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : {}; } catch(e) { return {}; }
+}
+function savePhotos() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(photos)); } catch(e) {}
+}
+
+function setupRosterSlot(i) {
+  const slot = document.getElementById('r' + i);
+  const input = slot.querySelector('input');
+  if (photos[i]) showPhoto(i);
+  input.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) { photos[i] = ev.target.result; savePhotos(); showPhoto(i); };
+    reader.readAsDataURL(file);
+    this.value = '';
+  });
+  slot.addEventListener('click', function() { if (editMode) slot.querySelector('input').click(); });
+  slot.addEventListener('dragstart', function(e) {
+    if (!photos[i] || editMode) { e.preventDefault(); return; }
+    dragIdx = i;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(i));
+  });
+  slot.addEventListener('dragend', function() { dragIdx = null; });
+}
+
+function showPhoto(i) {
+  const slot = document.getElementById('r' + i);
+  let img = slot.querySelector('img');
+  if (!img) { img = document.createElement('img'); img.alt = 'player'; slot.insertBefore(img, slot.firstChild); }
+  img.src = photos[i];
+  applyEditStyles(slot, i);
+}
+
+function applyEditStyles(slot, i) {
+  slot.classList.remove('edit-empty', 'edit-has-photo', 'draggable');
+  if (editMode) {
+    slot.classList.add(photos[i] ? 'edit-has-photo' : 'edit-empty');
+    slot.draggable = false;
+  } else {
+    if (photos[i]) { slot.classList.add('draggable'); slot.draggable = true; }
+    else { slot.draggable = false; }
+  }
+}
+
+function toggleEdit() {
+  editMode = !editMode;
+  const btn = document.getElementById('edit-btn');
+  btn.textContent = editMode ? 'Done' : 'Edit';
+  btn.style.background = editMode ? '#FFD700' : 'transparent';
+  btn.style.color = editMode ? '#001F3F' : '#00B2A9';
+  btn.style.borderColor = editMode ? '#FFD700' : '#00B2A9';
+  document.getElementById('instructions').textContent = editMode
+    ? 'Click a circle to add a player photo'
+    : 'Drag a player photo onto a spot on the field';
+  for (let i = 0; i < TOTAL; i++) applyEditStyles(document.getElementById('r' + i), i);
+}
+
+document.querySelectorAll('.pos-slot').forEach(function(slot) {
+  slot.addEventListener('dragover', function(e) { e.preventDefault(); slot.classList.add('drag-over'); });
+  slot.addEventListener('dragleave', function() { slot.classList.remove('drag-over'); });
+  slot.addEventListener('drop', function(e) {
+    e.preventDefault();
+    slot.classList.remove('drag-over');
+    if (dragIdx === null || !photos[dragIdx]) return;
+    const pos = slot.dataset.pos;
+    const prevPos = Object.keys(placed).find(function(p) { return placed[p] === dragIdx; });
+    if (prevPos) {
+      const old = document.getElementById('slot-' + prevPos);
+      old.innerHTML = '';
+      old.classList.remove('has-photo');
+      delete placed[prevPos];
+    }
+    if (placed[pos] !== undefined) {
+      document.getElementById('r' + placed[pos]).classList.remove('placed');
+      delete placed[pos];
+    }
+    placed[pos] = dragIdx;
+    slot.innerHTML = '<img src="' + photos[dragIdx] + '" alt="player"/>';
+    slot.classList.add('has-photo');
+    document.getElementById('r' + dragIdx).classList.add('placed');
+    checkWin();
+  });
+  slot.addEventListener('dblclick', function() {
+    const pos = slot.dataset.pos;
+    if (placed[pos] !== undefined) {
+      document.getElementById('r' + placed[pos]).classList.remove('placed');
+      delete placed[pos];
+      slot.innerHTML = '';
+      slot.classList.remove('has-photo');
+      document.getElementById('win-banner').style.display = 'none';
+    }
+  });
+});
+
+function checkWin() {
+  if (Object.keys(placed).length >= 9) document.getElementById('win-banner').style.display = 'block';
+}
+
+function resetGame() {
+  placed = {};
+  document.querySelectorAll('.pos-slot').forEach(function(s) { s.innerHTML = ''; s.classList.remove('has-photo'); });
+  for (let i = 0; i < TOTAL; i++) document.getElementById('r' + i).classList.remove('placed');
+  document.getElementById('win-banner').style.display = 'none';
+}
+
+for (let i = 0; i < TOTAL; i++) setupRosterSlot(i);
+</script>
+</body>
+</html>
